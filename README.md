@@ -28,3 +28,4 @@ Para compilar o projeto, utilize um compilador C++ compatível com C++11 ou supe
 
 ```bash
 g++ -std=c++11 main.cpp Livro.cpp Usuario.cpp -o biblioteca
+```
