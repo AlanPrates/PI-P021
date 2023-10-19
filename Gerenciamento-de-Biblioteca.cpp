@@ -1,230 +1,249 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <algorithm>
+#include <ctime>
 
 class Livro {
 private:
+    static int contadorLivros;
+    int id;
     std::string titulo;
     std::string autor;
-    int copias_disponiveis;
+    int numCopias;
 
 public:
-    Livro(std::string t, std::string a, int c) : titulo(t), autor(a), copias_disponiveis(c) {}
+    Livro(std::string t, std::string a, int n) : id(contadorLivros++), titulo(t), autor(a), numCopias(n) {}
 
     std::string getTitulo() const { return titulo; }
     std::string getAutor() const { return autor; }
-    int getCopiasDisponiveis() const { return copias_disponiveis; }
+    int getNumCopias() const { return numCopias; }
+    int getId() const { return id; }
 
     void emprestarLivro() {
-        if (copias_disponiveis > 0) {
-            copias_disponiveis--;
-            std::cout << "Livro emprestado com sucesso!" << std::endl;
+        if (numCopias > 0) {
+            numCopias--;
+            std::cout << "Livro emprestado com sucesso!\n";
         } else {
-            std::cout << "Desculpe, não há cópias disponíveis no momento." << std::endl;
+            std::cout << "Não há cópias disponíveis para empréstimo.\n";
         }
     }
 
     void devolverLivro() {
-        copias_disponiveis++;
-        std::cout << "Livro devolvido com sucesso!" << std::endl;
-    }
-
-    void editarLivro(std::string novo_titulo, std::string novo_autor, int novas_copias) {
-        titulo = novo_titulo;
-        autor = novo_autor;
-        copias_disponiveis = novas_copias;
+        numCopias++;
+        std::cout << "Livro devolvido com sucesso!\n";
     }
 };
+
+int Livro::contadorLivros = 0;
 
 class Usuario {
 private:
+    static int contadorUsuarios;
+    int id;
     std::string nome;
+    std::vector<Livro*> livrosEmprestados;
 
 public:
-    Usuario(std::string n) : nome(n) {}
+    Usuario(std::string n) : id(contadorUsuarios++), nome(n) {}
 
     std::string getNome() const { return nome; }
+    int getId() const { return id; }
 
-    static void emprestarLivro(Usuario& usuario, Livro& livro) {
-        livro.emprestarLivro();
-        std::cout << usuario.getNome() << " pegou emprestado o livro: " << livro.getTitulo() << std::endl;
+    void emprestarLivro(Livro* livro) {
+        if (livro->getNumCopias() > 0) {
+            livrosEmprestados.push_back(livro);
+            livro->emprestarLivro();
+        } else {
+            std::cout << "Não foi possível emprestar o livro. Não há cópias disponíveis.\n";
+        }
     }
 
-    static void devolverLivro(Usuario& usuario, Livro& livro) {
-        livro.devolverLivro();
-        std::cout << usuario.getNome() << " devolveu o livro: " << livro.getTitulo() << std::endl;
+    void devolverLivro(Livro* livro) {
+        auto it = std::find(livrosEmprestados.begin(), livrosEmprestados.end(), livro);
+        if (it != livrosEmprestados.end()) {
+            livrosEmprestados.erase(it);
+            livro->devolverLivro();
+        } else {
+            std::cout << "Este livro não está emprestado para você.\n";
+        }
+    }
+
+    void listarLivrosEmprestados() {
+        std::cout << "Livros emprestados para " << nome << ":\n";
+        for (Livro* livro : livrosEmprestados) {
+            std::cout << " - " << livro->getTitulo() << " por " << livro->getAutor() << "\n";
+        }
     }
 };
+
+int Usuario::contadorUsuarios = 0;
 
 class Biblioteca {
 private:
-    static std::vector<Livro> livros;
+    static std::vector<Livro> listaLivros;
+    static std::vector<Usuario> listaUsuarios;
 
 public:
     static void adicionarLivro(const Livro& livro) {
-        livros.push_back(livro);
+        listaLivros.push_back(livro);
     }
 
-    static void editarLivro(const std::string& titulo, const std::string& novo_titulo, const std::string& novo_autor, int novas_copias) {
-        auto it = std::find_if(livros.begin(), livros.end(), [&titulo](const Livro& livro) {
-            return livro.getTitulo() == titulo;
-        });
+    static void adicionarUsuario(const Usuario& usuario) {
+        listaUsuarios.push_back(usuario);
+    }
 
-        if (it != livros.end()) {
-            it->editarLivro(novo_titulo, novo_autor, novas_copias);
+    static void registrarEmprestimo(int idUsuario, int idLivro) {
+        if (idUsuario >= 0 && idUsuario < listaUsuarios.size() && idLivro >= 0 && idLivro < listaLivros.size()) {
+            Usuario& usuario = listaUsuarios[idUsuario];
+            Livro& livro = listaLivros[idLivro];
+
+            time_t now = time(0);
+            tm* localTime = localtime(&now);
+            std::cout << "Empréstimo registrado em: " << localTime->tm_mday << "/" << localTime->tm_mon + 1 << "/" << localTime->tm_year + 1900 << "\n";
+
+            usuario.emprestarLivro(&livro);
         } else {
-            std::cout << "Livro não encontrado." << std::endl;
+            std::cout << "Usuário ou livro inválido.\n";
         }
     }
 
-    static void removerLivro(const std::string& titulo) {
-        auto it = std::remove_if(livros.begin(), livros.end(), [&titulo](const Livro& livro) {
-            return livro.getTitulo() == titulo;
-        });
-
-        if (it != livros.end()) {
-            livros.erase(it, livros.end());
-            std::cout << "Livro removido com sucesso." << std::endl;
-        } else {
-            std::cout << "Livro não encontrado." << std::endl;
-        }
-    }
-
-    static void listarLivros() {
-        for (const Livro& livro : livros) {
-            std::cout << "Título: " << livro.getTitulo() << ", Autor: " << livro.getAutor() 
-                      << ", Cópias Disponíveis: " << livro.getCopiasDisponiveis() << std::endl;
-        }
-    }
-
-    static Livro* encontrarLivroPorTitulo(const std::string& titulo) {
-        for (Livro& livro : livros) {
-            if (livro.getTitulo() == titulo) {
-                return &livro;
+    static void verificarDisponibilidade(int idLivro) {
+        if (idLivro >= 0 && idLivro < listaLivros.size()) {
+            Livro& livro = listaLivros[idLivro];
+            std::cout << "Livro: " << livro.getTitulo() << "\n";
+            if (livro.getNumCopias() > 0) {
+                std::cout << "Disponível. Número de cópias disponíveis: " << livro.getNumCopias() << "\n";
+            } else {
+                std::cout << "Não disponível.\n";
             }
-        }
-        return nullptr;
-    }
-
-    static void salvarDados() {
-        std::ofstream arquivo("dados_biblioteca.txt");
-
-        if (arquivo.is_open()) {
-            for (const Livro& livro : livros) {
-                arquivo << livro.getTitulo() << "," << livro.getAutor() << "," << livro.getCopiasDisponiveis() << "\n";
-            }
-            arquivo.close();
-            std::cout << "Dados salvos com sucesso." << std::endl;
         } else {
-            std::cout << "Erro ao abrir o arquivo para salvar os dados." << std::endl;
+            std::cout << "Livro inválido.\n";
         }
     }
 
-    static void carregarDados() {
-        std::ifstream arquivo("dados_biblioteca.txt");
-
-        if (arquivo.is_open()) {
-            std::string linha;
-            while (std::getline(arquivo, linha)) {
-                std::string titulo, autor;
-                int copias;
-
-                std::istringstream ss(linha);
-                std::getline(ss, titulo, ',');
-                std::getline(ss, autor, ',');
-                ss >> copias;
-
-                adicionarLivro(Livro(titulo, autor, copias));
-            }
-            arquivo.close();
-           
-            std::cout << "Dados carregados com sucesso." << std::endl;
+    static void listarLivrosEmprestadosPorUsuario(int idUsuario) {
+        if (idUsuario >= 0 && idUsuario < listaUsuarios.size()) {
+            Usuario& usuario = listaUsuarios[idUsuario];
+            usuario.listarLivrosEmprestados();
         } else {
-            std::cout << "Não foi possível abrir o arquivo para carregar os dados." << std::endl;
+            std::cout << "Usuário inválido.\n";
+        }
+    }
+
+    static void devolverLivro(int idUsuario, int idLivro) {
+        if (idUsuario >= 0 && idUsuario < listaUsuarios.size() && idLivro >= 0 && idLivro < listaLivros.size()) {
+            Usuario& usuario = listaUsuarios[idUsuario];
+            Livro& livro = listaLivros[idLivro];
+
+            usuario.devolverLivro(&livro);
+        } else {
+            std::cout << "Usuário ou livro inválido.\n";
         }
     }
 };
 
-std::vector<Livro> Biblioteca::livros;
+std::vector<Livro> Biblioteca::listaLivros;
+std::vector<Usuario> Biblioteca::listaUsuarios;
+
+void exibirMenu() {
+    std::cout << "\n==== Sistema de Biblioteca ====\n";
+    std::cout << "1. Adicionar Livro\n";
+    std::cout << "2. Adicionar Usuário\n";
+    std::cout << "3. Emprestar Livro\n";
+    std::cout << "4. Devolver Livro\n";
+    std::cout << "5. Verificar Disponibilidade de Livro\n";
+    std::cout << "6. Listar Livros Emprestados por Usuário\n";
+    std::cout << "7. Sair\n";
+    std::cout << "Escolha uma opção: ";
+}
 
 int main() {
-    Biblioteca::carregarDados();
-
     int escolha;
+
     do {
-        std::cout << "Menu de Opções:" << std::endl;
-        std::cout << "1. Adicionar Livro" << std::endl;
-        std::cout << "2. Editar Livro" << std::endl;
-        std::cout << "3. Remover Livro" << std::endl;
-        std::cout << "4. Listar Livros" << std::endl;
-        std::cout << "5. Salvar Dados" << std::endl;
-        std::cout << "6. Sair" << std::endl;
-        std::cout << "Escolha uma opção: ";
+        exibirMenu();
         std::cin >> escolha;
+        std::cin.ignore(); // Limpa o buffer do teclado
 
         switch (escolha) {
             case 1: {
                 std::string titulo, autor;
-                int copias;
+                int numCopias;
 
-                std::cout << "Informe o título: ";
-                std::cin.ignore();
+                std::cout << "Informe o título do livro: ";
                 std::getline(std::cin, titulo);
 
-                std::cout << "Informe o autor: ";
+                std::cout << "Informe o autor do livro: ";
                 std::getline(std::cin, autor);
 
                 std::cout << "Informe o número de cópias disponíveis: ";
-                std::cin >> copias;
+                std::cin >> numCopias;
+                std::cin.ignore(); // Limpa o buffer do teclado
 
-                Biblioteca::adicionarLivro(Livro(titulo, autor, copias));
+                Livro novoLivro(titulo, autor, numCopias);
+                Biblioteca::adicionarLivro(novoLivro);
+                std::cout << "Livro adicionado com sucesso! ID: " << novoLivro.getId() << "\n";
                 break;
             }
             case 2: {
-                std::string titulo, novo_titulo, novo_autor;
-                int novas_copias;
+                std::string nome;
 
-                std::cout << "Informe o título do livro a ser editado: ";
-                std::cin.ignore();
-                std::getline(std::cin, titulo);
+                std::cout << "Informe o nome do usuário: ";
+                std::getline(std::cin, nome);
 
-                std::cout << "Novo Título: ";
-                std::getline(std::cin, novo_titulo);
-
-                std::cout << "Novo Autor: ";
-                std::getline(std::cin, novo_autor);
-
-                std::cout << "Novo Número de Cópias: ";
-                std::cin >> novas_copias;
-
-                Biblioteca::editarLivro(titulo, novo_titulo, novo_autor, novas_copias);
+                Usuario novoUsuario(nome);
+                Biblioteca::adicionarUsuario(novoUsuario);
+                std::cout << "Usuário adicionado com sucesso! ID: " << novoUsuario.getId() << "\n";
                 break;
             }
             case 3: {
-                std::string titulo;
-                std::cout << "Informe o título do livro a ser removido: ";
-                std::cin.ignore();
-                std::getline(std::cin, titulo);
-                Biblioteca::removerLivro(titulo);
+                int idUsuario, idLivro;
+
+                std::cout << "Informe o ID do usuário: ";
+                std::cin >> idUsuario;
+                std::cout << "Informe o ID do livro: ";
+                std::cin >> idLivro;
+
+                Biblioteca::registrarEmprestimo(idUsuario, idLivro);
                 break;
             }
-            case 4:
-                Biblioteca::listarLivros();
+            case 4: {
+                int idUsuario, idLivro;
+
+                std::cout << "Informe o ID do usuário: ";
+                std::cin >> idUsuario;
+                std::cout << "Informe o ID do livro: ";
+                std::cin >> idLivro;
+
+                Biblioteca::devolverLivro(idUsuario, idLivro);
                 break;
-            case 5:
-                Biblioteca::salvarDados();
+            }
+            case 5: {
+                int idLivro;
+
+                std::cout << "Informe o ID do livro: ";
+                std::cin >> idLivro;
+
+                Biblioteca::verificarDisponibilidade(idLivro);
                 break;
-            case 6:
+            }
+            case 6: {
+                int idUsuario;
+
+                std::cout << "Informe o ID do usuário: ";
+                std::cin >> idUsuario;
+
+                Biblioteca::listarLivrosEmprestadosPorUsuario(idUsuario);
+                break;
+            }
+            case 7:
+                std::cout << "Saindo...\n";
                 break;
             default:
-                std::cout << "Opção inválida. Tente novamente." << std::endl;
+                std::cout << "Opção inválida. Tente novamente.\n";
                 break;
         }
-
-    } while (escolha != 6);
+    } while (escolha != 7);
 
     return 0;
 }
