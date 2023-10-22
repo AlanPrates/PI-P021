@@ -15,6 +15,7 @@
 #include <vector>
 #include <string>
 #include <ctime>
+#include <algorithm>
 
 using namespace std;
 
@@ -74,7 +75,7 @@ public:
     }
 
     void devolverLivro(Livro* livro) {
-        auto it = find(livrosEmprestados.begin(), livrosEmprestados.end(), livro);
+        vector<Livro*>::iterator it = find(livrosEmprestados.begin(), livrosEmprestados.end(), livro);
         if (it != livrosEmprestados.end()) {
             livrosEmprestados.erase(it);
             livro->devolverLivro();
@@ -85,7 +86,8 @@ public:
 
     void listarLivrosEmprestados() {
         cout << "Livros emprestados para " << nome << ":" << endl;
-        for (Livro* livro : livrosEmprestados) {
+        for (vector<Livro*>::iterator it = livrosEmprestados.begin(); it != livrosEmprestados.end(); ++it) {
+            Livro* livro = *it;
             cout << " - " << livro->getTitulo() << " por " << livro->getAutor() << endl;
         }
     }
@@ -136,7 +138,7 @@ public:
         }
     }
 
-    static void listarLivrosEmprestadosPorUsuario(int idUsuario) {
+    static void listarLivrosEmprestadosByUser(int idUsuario) {
         if (idUsuario >= 0 && idUsuario < listaUsuarios.size()) {
             Usuario& usuario = listaUsuarios[idUsuario];
             usuario.listarLivrosEmprestados();
@@ -178,7 +180,7 @@ int main() {
     do {
         exibirMenu();
         cin >> escolha;
-        cin.ignore();
+        cin.ignore(); 
 
         switch (escolha) {
             case 1: {
@@ -193,7 +195,7 @@ int main() {
 
                 cout << "Informe o número de cópias disponíveis: ";
                 cin >> numCopias;
-                cin.ignore();
+                cin.ignore(); // Limpa o buffer do teclado
 
                 Livro novoLivro(titulo, autor, numCopias);
                 Biblioteca::adicionarLivro(novoLivro);
@@ -248,7 +250,7 @@ int main() {
                 cout << "Informe o ID do usuário: ";
                 cin >> idUsuario;
 
-                Biblioteca::listarLivrosEmprestadosPorUsuario(idUsuario);
+                Biblioteca::listarLivrosEmprestadosByUser(idUsuario);
                 break;
             }
             case 7:
@@ -262,3 +264,4 @@ int main() {
 
     return 0;
 }
+
