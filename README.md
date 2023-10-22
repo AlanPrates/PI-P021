@@ -22,7 +22,7 @@ O sistema permite aos usuários realizar as seguintes operações:
 
 O projeto é dividido em classes `Livro` e `Usuario`, com métodos estáticos para gerenciar a lista de livros e empréstimos.
 
-## Como Compilar e Executar
+## Exemplo Como Compilar e Executar
 
 Para compilar o projeto, utilize um compilador C++ compatível com C++11 ou superior.
 
